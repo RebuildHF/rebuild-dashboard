@@ -1360,23 +1360,8 @@ async function callScript(action, payload){
 }
 
 async function loadContacted(){
-  // Try Sheets first
-  let data = null;
-  try { data = await callScript('loadEngagement', {}); } catch(e){}
-  if(data && data.contacted){
-    // Sheet now keyed by memberId (numeric string)
-    // Remap to contactKey (name) so existing isContacted() works
-    const remapped = {};
-    Object.entries(data.contacted).forEach(([idStr, entry])=>{
-      // Find member by id
-      const m = RAW.find(x=>String(x.id)===idStr);
-      if(m) remapped[contactKey(m)] = entry;
-      else remapped[idStr] = entry; // fallback keep id key
-    });
-    CONTACTED = {...remapped, ...CONTACTED}; // merge, local takes precedence
-    return;
-  }
-  // Fallback to localStorage
+  // Contacts are local-only (this week, this browser)
+  // Sheets data is used only as historical context via loadPrevContacts — never as a current-week contact
   try {
     const raw = localStorage.getItem(LS_KEY);
     CONTACTED = raw ? JSON.parse(raw) : {};
