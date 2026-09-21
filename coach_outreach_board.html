@@ -819,8 +819,9 @@ async function callScript(action, payload){
       script.remove();
       resolve(data);
     };
-    script.onerror = ()=>{ if(!done){ delete window[cbName]; script.remove(); resolve(null); } };
-    setTimeout(()=>{ if(!done){ delete window[cbName]; script.remove(); resolve(null); } }, 8000);
+    script.onerror = ()=>{ if(!done){ done=true; delete window[cbName]; script.remove(); resolve(null); } };
+    const _prev=window.onerror; window.onerror=(msg)=>{ if(String(msg).includes('Script error')){ return true; } return _prev?_prev(...arguments):false; };
+    setTimeout(()=>{ if(!done){ done=true; delete window[cbName]; script.remove(); resolve(null); } }, 5000);
     script.src = APPS_SCRIPT_URL+'?'+params.toString();
     document.head.appendChild(script);
   });
