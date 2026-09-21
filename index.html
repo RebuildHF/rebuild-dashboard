@@ -1317,7 +1317,7 @@ function openNmPanel(m){
 // ── Persistent contact tracking via Google Sheets Apps Script ────────
 // Ticks and notes sync across all devices in real time.
 // Falls back to localStorage if the script URL isn't set.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWg6Q1LlEZsf8KRFQbLJ1d8bOvf9QwnR44jTSZVi5niL1qkZAc5Y72mwfjyrFvn_ANLA/exec';
+const APPS_SCRIPT_URL = '';
 const SHEET_NAME = 'Engagement Dashboard'; // tab in the same Google Sheet
 
 function currentWeekKey(){
@@ -1349,8 +1349,11 @@ async function callScript(action, payload){
       script.remove();
       resolve(data);
     };
-    script.onerror = ()=>{ if(!done){ delete window[cbName]; script.remove(); resolve(null); } };
-    setTimeout(()=>{ if(!done){ delete window[cbName]; script.remove(); resolve(null); } }, 8000);
+    script.onerror = ()=>{ if(!done){ done=true; delete window[cbName]; script.remove(); resolve(null); } };
+    script.crossOrigin = 'anonymous';
+    setTimeout(()=>{ if(!done){ done=true; delete window[cbName]; script.remove(); resolve(null); } }, 5000);
+    const _prev = window.onerror;
+    window.onerror = (msg)=>{ if(String(msg).includes('Script error')){ return true; } return _prev ? _prev(...arguments) : false; };
     script.src = APPS_SCRIPT_URL+'?'+params.toString();
     document.head.appendChild(script);
   });
@@ -1358,7 +1361,8 @@ async function callScript(action, payload){
 
 async function loadContacted(){
   // Try Sheets first
-  const data = await callScript('loadEngagement', {});
+  let data = null;
+  try { data = await callScript('loadEngagement', {}); } catch(e){}
   if(data && data.contacted){
     // Sheet now keyed by memberId (numeric string)
     // Remap to contactKey (name) so existing isContacted() works
@@ -1401,7 +1405,8 @@ pruneOldWeeks();
 let PREV_CONTACTS = {};  // { memberKey -> {name, notes, ts, contacted} }
 
 async function loadPrevContacts(){
-  const data = await callScript('loadAllEngagement', {});
+  let data = null;
+  try { data = await callScript('loadAllEngagement', {}); } catch(e){}
   if(!data || !data.allContacts) return;
   // allContacts is { weekKey -> { memberKey -> entry } }
   // Find the most recent week that isn't the current week
@@ -1468,6 +1473,10 @@ function rotationState(m, q, prevContactEntry){
 }
 
 // Milestone override: always surface streak milestones regardless of rotation
+function isMilestone(m){
+  const MILESTONE_WEEKS=[4,8,12,16,20,50,75,100];
+  return MILESTONE_WEEKS.includes(m.str)||(m.str>=25&&m.str%25===0);
+}
 function isMilestoneOverride(m){
   return isMilestone(m);
 }
