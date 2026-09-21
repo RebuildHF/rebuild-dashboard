@@ -767,27 +767,7 @@ async function loadAllAssignments(){
   if(!data) { renderWorkload(); renderAll(); return; }
   const a = data.assignments || {};
   assignments = a;
-  // Mirror contacted state into localDocs so isContactedThisWeek works
-  // regardless of which members are currently visible
-  const wk = weekKeyNow();
-  Object.entries(a).forEach(([memberId, perCoach])=>{
-    const anyContacted = Object.values(perCoach).some(c=>c.contacted);
-    if(anyContacted){
-      const doc = getLocalDoc(memberId) || {};
-      if(!doc.weeks) doc.weeks = {};
-      if(!doc.weeks[wk]){
-        const coachEntry = Object.entries(perCoach).find(([,c])=>c.contacted);
-        doc.weeks[wk] = {
-          method: (coachEntry && coachEntry[1].notes ? coachEntry[1].notes.split(' — ')[0] : '') || 'Floor',
-          outcome: '',
-          note: coachEntry && coachEntry[1].notes || '',
-          by: coachEntry && coachEntry[0] || '',
-          fromSheet: true,
-        };
-        setLocalDoc(memberId, doc);
-      }
-    }
-  });
+  // Sheets assignments kept for historical context only — isContactedThisWeek uses local week log
   renderWorkload(); renderAll();
   if(openPanelId!=null) refreshPanel();
 }
@@ -858,10 +838,9 @@ function weekKeyNow(){
   return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
 }
 function isContactedThisWeek(m){
-  const a = getAssignment(m.id);
+  // Local only — Sheets history is context, not a current-week contact mark
   const doc = getLocalDoc(m.id);
-  const hasWeekLog = !!(doc && doc.weeks && doc.weeks[weekKeyNow()]);
-  return !!(a && a.contacted) || hasWeekLog;
+  return !!(doc && doc.weeks && doc.weeks[weekKeyNow()]);
 }
 
 // ── Outreach rotation logic ──────────────────────────────────────────
