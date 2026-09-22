@@ -1360,12 +1360,27 @@ async function callScript(action, payload){
 }
 
 async function loadContacted(){
-  // Contacts are local-only (this week, this browser)
-  // Sheets data is used only as historical context via loadPrevContacts — never as a current-week contact
+  // Load local contacts first (instant)
   try {
     const raw = localStorage.getItem(LS_KEY);
     CONTACTED = raw ? JSON.parse(raw) : {};
   } catch(e){ CONTACTED = {}; }
+  // Merge in this week's contacts from Sheets so marks persist across browsers/users
+  let data = null;
+  try { data = await callScript('loadEngagement', {}); } catch(e){}
+  if(data && data.contacted){
+    const wk = currentWeekKey();
+    const remapped = {};
+    Object.entries(data.contacted).forEach(([idStr, entry]) => {
+      // Only include contacts logged this week
+      if(entry.week && entry.week !== wk) return;
+      const m = RAW.find(x => String(x.id) === idStr);
+      if(m) remapped[contactKey(m)] = entry;
+      else remapped[idStr] = entry;
+    });
+    // Merge — local takes precedence so an uncontact action is respected
+    CONTACTED = {...remapped, ...CONTACTED};
+  }
 }
 
 function saveContactedLocal(){
