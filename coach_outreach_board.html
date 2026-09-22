@@ -767,17 +767,15 @@ async function loadAllAssignments(){
   if(!data) { renderWorkload(); renderAll(); return; }
   const a = data.assignments || {};
   assignments = a;
-  // Load primary/secondary overrides from Sheets into localDocs (don't overwrite local week logs)
+  // Primary/secondary: Sheets is source of truth — overwrite local cache
   const pa = data.primaryAssignments || {};
   Object.entries(pa).forEach(([id, v]) => {
     const doc = localDocs[id] || {};
-    // Only apply if not already overridden locally this session
-    if (!Object.prototype.hasOwnProperty.call(doc, 'primary')) {
-      doc.primary = v.primary || null;
-      doc.secondary = v.secondary || null;
-      localDocs[id] = doc;
-    }
+    doc.primary = v.primary || null;
+    doc.secondary = v.secondary || null;
+    localDocs[id] = doc;
   });
+  saveLocalDocs();
   renderWorkload(); renderAll();
   if(openPanelId!=null) refreshPanel();
 }
@@ -994,15 +992,13 @@ function writeAssignment(id, doc){
     const m = MEMBERS.find(x=>x.id===id);
     const memberName = m ? cn(m.n) : String(id);
     const coachName = coaches[currentCoachId]?.name || currentCoachId || '';
-    // Always sync primary/secondary assignment to Sheets
-    if(Object.prototype.hasOwnProperty.call(doc,'primary')||Object.prototype.hasOwnProperty.call(doc,'secondary')){
-      callScript('assign', {
-        memberId: id, memberName,
-        primary: doc.primary || '',
-        secondary: doc.secondary || '',
-        updatedBy: coachName
-      });
-    }
+    // Always sync primary/secondary to Sheets (empty string = cleared/reset)
+    callScript('assign', {
+      memberId: id, memberName,
+      primary: doc.primary || '',
+      secondary: doc.secondary || '',
+      updatedBy: coachName
+    });
     // Sync contact log if there's a week entry
     if(currentCoachId){
       const weekLog = doc.weeks && doc.weeks[weekKeyNow()];
