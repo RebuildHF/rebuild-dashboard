@@ -778,11 +778,16 @@ async function loadAllAssignments(){
   Object.entries(a).forEach(([memberId, perCoach]) => {
     const anyContacted = Object.values(perCoach).some(c => c.contacted);
     if(!anyContacted) return;
-    // Check if the contact timestamp falls within this week
-    const coachEntry = Object.entries(perCoach).find(([,c]) => c.contacted && c.ts);
+    const coachEntry = Object.entries(perCoach).find(([,c]) => c.contacted);
     if(!coachEntry) return;
-    const ts = new Date(coachEntry[1].ts);
-    if(ts < monday) return; // contact is from a previous week — skip
+    // Only mirror if week key matches current week
+    const entryWeek = coachEntry[1].week || '';
+    if(entryWeek && entryWeek !== wk) return;
+    // Fallback to timestamp check if no week key stored yet
+    if(!entryWeek && coachEntry[1].ts){
+      const ts = new Date(coachEntry[1].ts);
+      if(ts < monday) return;
+    }
     const doc = localDocs[memberId] || {};
     if(!doc.weeks) doc.weeks = {};
     if(!doc.weeks[wk]){
@@ -822,7 +827,7 @@ async function writeContactToSheet(memberId, memberName, coachName, contacted, n
   renderWorkload(); renderAll();
   if(openPanelId===memberId) refreshPanel();
   // Sync to sheet in background
-  await callScript('write', {memberId, memberName, coachName, contacted, notes:notes||''});
+  await callScript('write', {memberId, memberName, coachName, contacted, notes:notes||'', week:weekKeyNow()});
 }
 
 /* ── Google OAuth sign-in ────────────────────────────────────────────── */
