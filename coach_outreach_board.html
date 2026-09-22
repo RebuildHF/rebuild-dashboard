@@ -767,7 +767,17 @@ async function loadAllAssignments(){
   if(!data) { renderWorkload(); renderAll(); return; }
   const a = data.assignments || {};
   assignments = a;
-  // Sheets assignments kept for historical context only — isContactedThisWeek uses local week log
+  // Load primary/secondary overrides from Sheets into localDocs (don't overwrite local week logs)
+  const pa = data.primaryAssignments || {};
+  Object.entries(pa).forEach(([id, v]) => {
+    const doc = localDocs[id] || {};
+    // Only apply if not already overridden locally this session
+    if (!Object.prototype.hasOwnProperty.call(doc, 'primary')) {
+      doc.primary = v.primary || null;
+      doc.secondary = v.secondary || null;
+      localDocs[id] = doc;
+    }
+  });
   renderWorkload(); renderAll();
   if(openPanelId!=null) refreshPanel();
 }
@@ -980,17 +990,29 @@ function writeAssignment(id, doc){
   renderWorkload();
   renderAll();
   if(openPanelId===id) refreshPanel();
-  // Only sync contacted status when there's an actual week log
-  if(APPS_SCRIPT_URL && currentCoachId){
-    const weekLog = doc.weeks && doc.weeks[weekKeyNow()];
-    if(weekLog !== undefined){
-      const m = MEMBERS.find(x=>x.id===id);
-      const coachName = coaches[currentCoachId]?.name || currentCoachId;
-      const contacted = !!weekLog;
-      const notes = weekLog
-        ? [weekLog.method, weekLog.outcome, weekLog.note].filter(Boolean).join(' — ')
-        : '';
-      writeContactToSheet(id, m ? cn(m.n) : String(id), coachName, contacted, notes);
+  if(APPS_SCRIPT_URL){
+    const m = MEMBERS.find(x=>x.id===id);
+    const memberName = m ? cn(m.n) : String(id);
+    const coachName = coaches[currentCoachId]?.name || currentCoachId || '';
+    // Always sync primary/secondary assignment to Sheets
+    if(Object.prototype.hasOwnProperty.call(doc,'primary')||Object.prototype.hasOwnProperty.call(doc,'secondary')){
+      callScript('assign', {
+        memberId: id, memberName,
+        primary: doc.primary || '',
+        secondary: doc.secondary || '',
+        updatedBy: coachName
+      });
+    }
+    // Sync contact log if there's a week entry
+    if(currentCoachId){
+      const weekLog = doc.weeks && doc.weeks[weekKeyNow()];
+      if(weekLog !== undefined){
+        const contacted = !!weekLog;
+        const notes = weekLog
+          ? [weekLog.method, weekLog.outcome, weekLog.note].filter(Boolean).join(' — ')
+          : '';
+        writeContactToSheet(id, memberName, coachName, contacted, notes);
+      }
     }
   }
 }
