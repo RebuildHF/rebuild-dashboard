@@ -769,6 +769,7 @@ async function loadAllAssignments(){
   assignments = a;
   // Primary/secondary: Sheets is source of truth — overwrite local cache
   const pa = data.primaryAssignments || {};
+  console.log('[Outreach] load response — primaryAssignments:', JSON.stringify(pa));
   Object.entries(pa).forEach(([id, v]) => {
     const doc = localDocs[id] || {};
     doc.primary = v.primary || null;
@@ -993,12 +994,9 @@ function writeAssignment(id, doc){
     const memberName = m ? cn(m.n) : String(id);
     const coachName = coaches[currentCoachId]?.name || currentCoachId || '';
     // Always sync primary/secondary to Sheets (empty string = cleared/reset)
-    callScript('assign', {
-      memberId: id, memberName,
-      primary: doc.primary || '',
-      secondary: doc.secondary || '',
-      updatedBy: coachName
-    });
+    const assignPayload = {memberId: id, memberName, primary: doc.primary||'', secondary: doc.secondary||'', updatedBy: coachName};
+    console.log('[Outreach] writing assign:', JSON.stringify(assignPayload));
+    callScript('assign', assignPayload).then(r => console.log('[Outreach] assign response:', JSON.stringify(r)));
     // Sync contact log if there's a week entry
     if(currentCoachId){
       const weekLog = doc.weeks && doc.weeks[weekKeyNow()];
