@@ -978,9 +978,9 @@ function relTime(iso){
 
 /* ================= DB bootstrap ================= */
 async function initDb(){
-  // Coaches are hardcoded — render immediately
+  // Coaches are hardcoded — render immediately from local state
   renderIdentity(); renderWorkload(); renderAll();
-  // Load contacted state from Google Sheet
+  // Load from Sheets — re-renders when done
   await loadAllAssignments();
 }
 
