@@ -767,6 +767,34 @@ async function loadAllAssignments(){
   if(!data) { renderWorkload(); renderAll(); return; }
   const a = data.assignments || {};
   assignments = a;
+  // Mirror this week's Sheets contacts into localDocs so isContactedThisWeek works across browsers
+  const wk = weekKeyNow();
+  const [wkYear, wkMon] = wk.split('-').map(Number);
+  const wkStart = new Date(wkYear, wkMon-1, 1);
+  // weekKeyNow is YYYY-MM (Monday of week) — compute actual Monday
+  const now = new Date();
+  const dayOfWeek = now.getDay() || 7;
+  const monday = new Date(now); monday.setDate(now.getDate() - dayOfWeek + 1); monday.setHours(0,0,0,0);
+  Object.entries(a).forEach(([memberId, perCoach]) => {
+    const anyContacted = Object.values(perCoach).some(c => c.contacted);
+    if(!anyContacted) return;
+    // Check if the contact timestamp falls within this week
+    const coachEntry = Object.entries(perCoach).find(([,c]) => c.contacted && c.ts);
+    if(!coachEntry) return;
+    const ts = new Date(coachEntry[1].ts);
+    if(ts < monday) return; // contact is from a previous week — skip
+    const doc = localDocs[memberId] || {};
+    if(!doc.weeks) doc.weeks = {};
+    if(!doc.weeks[wk]){
+      doc.weeks[wk] = {
+        method: coachEntry[1].notes ? coachEntry[1].notes.split(' — ')[0] : 'Floor',
+        outcome: '',
+        note: coachEntry[1].notes || '',
+        by: coachEntry[0]
+      };
+    }
+    localDocs[memberId] = doc;
+  });
   // Primary/secondary: Sheets is source of truth — overwrite local cache
   const pa = data.primaryAssignments || {};
   console.log('[Outreach] load response — primaryAssignments:', JSON.stringify(pa));
