@@ -772,8 +772,11 @@ async function loadAllAssignments(){
   console.log('[Outreach] load response — primaryAssignments:', JSON.stringify(pa));
   Object.entries(pa).forEach(([id, v]) => {
     const doc = localDocs[id] || {};
-    doc.primary = v.primary || null;
-    doc.secondary = v.secondary || null;
+    // null primary = reset to Wodify default; delete key so effectivePrimaryId falls back correctly
+    if(v.primary) doc.primary = v.primary;
+    else delete doc.primary;
+    if(v.secondary) doc.secondary = v.secondary;
+    else delete doc.secondary;
     localDocs[id] = doc;
   });
   saveLocalDocs();
