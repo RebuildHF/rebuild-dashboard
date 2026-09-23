@@ -138,7 +138,7 @@ select:focus{border-color:#6366f1}
 .sparkline-label{font-size:0.63rem;color:#94a3b8;margin-bottom:3px}
 .sparkline{display:flex;align-items:flex-end;gap:3px;height:34px}
 .sbar{flex:1;border-radius:3px 3px 0 0;min-height:2px;position:relative;cursor:default}
-.sbar:hover::after{content:attr(data-t);position:absolute;bottom:105%;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:0.6rem;padding:2px 5px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.sbar:hover::after{content:attr(data-t);position:fixed;background:#1e293b;color:#fff;font-size:0.6rem;padding:2px 5px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:9999;transform:translateY(-130%)}
 /* ref line for 3/wk */
 .sbar-ref{position:absolute;width:100%;height:1px;background:#a855f7;opacity:0.5;bottom:0}
 .slabels{display:flex;justify-content:space-between;margin-top:2px}
