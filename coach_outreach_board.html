@@ -256,7 +256,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .sig-drop{background:var(--monitor-bg);color:var(--monitor-strong)}
 .sig-rise{background:var(--maintain-bg);color:var(--rise-ink)}
 .spark{display:flex;align-items:flex-end;gap:1px;height:18px}
-.spark i{display:block;width:4px;border-radius:1px 1px 0 0}
+.spark i{display:block;width:4px;border-radius:1px 1px 0 0;position:relative;cursor:default}
+.spark i:hover::after{content:attr(data-t);position:fixed;background:#1e293b;color:#fff;font-size:0.6rem;padding:2px 5px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:9999;transform:translateY(-130%)}
 select.assign{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:4px 6px;font-size:.72rem;background:var(--surface);color:var(--ink)}
 select.assign.set{border-color:var(--accent);background:var(--accent-soft);font-weight:700;color:var(--accent)}
 .pill{border-radius:999px;font-size:.66rem;font-weight:700;padding:4px 9px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap}
@@ -826,8 +827,10 @@ async function writeContactToSheet(memberId, memberName, coachName, contacted, n
   };
   renderWorkload(); renderAll();
   if(openPanelId===memberId) refreshPanel();
-  // Sync to sheet in background
+  // Sync to coach sheet
   await callScript('write', {memberId, memberName, coachName, contacted, notes:notes||'', week:weekKeyNow()});
+  // Also sync to engagement dashboard sheet so contacts don't need to be logged twice
+  await callScript('writeEngagement', {memberId, memberName, contacted, notes:notes||'', week:weekKeyNow()});
 }
 
 /* ── Google OAuth sign-in ────────────────────────────────────────────── */
@@ -1291,9 +1294,40 @@ function onSearch(v){ searchTerm=v.trim().toLowerCase(); renderAll(); }
 function onAssignFilter(v){ assignFilter=v; renderAll(); }
 function onSort(v){ sortMode=v; renderAll(); }
 
+function firstMondayAfterMonthStart(){
+  // First Monday on or after the 1st of next calendar month
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth()+1, 1); // 1st of next month
+  const day = first.getDay(); // 0=Sun,1=Mon,...
+  const daysToMon = day===1 ? 0 : day===0 ? 1 : 8-day;
+  first.setDate(first.getDate()+daysToMon);
+  first.setHours(0,0,0,0);
+  return first;
+}
+
+function isHiddenUntilNextMonth(m){
+  // Hide if: contacted this week + outcome is Positive + not a milestone
+  if(isMilestone(m)) return false;
+  const log = thisWeekLog(m);
+  if(!log) return false;
+  const outcome = (log.outcome||'').toLowerCase();
+  if(outcome !== 'positive') return false;
+  // Contacted with positive outcome and no milestone — hide until first Monday after 1st next month
+  // Store the hide-until in localDocs so it persists across sessions
+  const doc = getLocalDoc(m.id) || {};
+  if(!doc.hideUntil){
+    doc.hideUntil = firstMondayAfterMonthStart().toISOString();
+    localDocs[String(m.id)] = doc;
+    saveLocalDocs();
+  }
+  return new Date() < new Date(doc.hideUntil);
+}
+
 function passesFilters(m){
   if(activeLoc && m.loc!==activeLoc) return false;
   if(searchTerm && !cn(m.n).toLowerCase().includes(searchTerm)) return false;
+  // Hide members with positive contact this week (no milestone) until next month — unless searching by name
+  if(!searchTerm && isHiddenUntilNextMonth(m)) return false;
   const eff=effectivePrimaryId(m);
   const a=getLocalDoc(m.id)||{};
   if(assignFilter==='unassigned' && eff) return false;
@@ -1321,9 +1355,10 @@ function sparkHTML(m){
   const mx=Math.max(...vals,3,1);
   const cols=['var(--faint)','var(--accent)','var(--accent)',
     m.v7===0&&m.v714>0?'var(--danger-line)': m.v7<m.v714?'var(--monitor-line)':'var(--maintain-line)'];
+  const labels=['W-4','W-3','W-2','This wk'];
   return '<div class="spark">'+vals.map((v,i)=>{
     const h=Math.max(3,Math.round((v/mx)*20));
-    return `<i style="height:${h}px;background:${cols[i]}"></i>`;
+    return `<i style="height:${h}px;background:${cols[i]}" data-t="${labels[i]}: ${v} visit${v===1?'':'s'}"></i>`;
   }).join('')+'</div>';
 }
 function sigChip(m){
