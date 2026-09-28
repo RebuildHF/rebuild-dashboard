@@ -1322,7 +1322,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWg6Q1LlEZsf8K
 const SHEET_NAME = 'Engagement Dashboard'; // tab in the same Google Sheet
 
 function currentWeekKey(){
-  // Format: YYYY-MM-DD (matches coach board weekKeyNow() so week filtering is consistent)
+  // Format: YYYY-MM-DD
   const d = new Date();
   const day = d.getDay() || 7;
   const monday = new Date(d);
@@ -1331,6 +1331,30 @@ function currentWeekKey(){
   const m = String(monday.getMonth()+1).padStart(2,'0');
   const dd = String(monday.getDate()).padStart(2,'0');
   return y+'-'+m+'-'+dd;
+}
+
+// Normalise any week value from the sheet to YYYY-MM-DD so comparisons work
+// regardless of whether it was stored as 20260928, "2026-09-28", or "2026-09-27T14:00:00.000Z"
+function normaliseWeek(raw){
+  if(!raw && raw !== 0) return '';
+  const s = String(raw).trim();
+  // Integer format: 20260928
+  if(/^\d{8}$/.test(s)) return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+  // ISO timestamp: 2026-09-27T14:00:00.000Z — take the date part and find the Monday
+  if(s.length > 10 && s.includes('T')){
+    // Parse as a UTC date, convert to local Monday
+    const d = new Date(s);
+    const day = d.getDay() || 7;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - day + 1);
+    const y = monday.getFullYear();
+    const mo = String(monday.getMonth()+1).padStart(2,'0');
+    const dd = String(monday.getDate()).padStart(2,'0');
+    return y+'-'+mo+'-'+dd;
+  }
+  // Already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  return s;
 }
 
 const LS_KEY = 'rebuild_contacted_w_'+currentWeekKey();
@@ -1377,7 +1401,7 @@ async function loadContacted(){
       // Column A is stored as a HYPERLINK formula — strip it to get the raw numeric ID
       // e.g. =HYPERLINK("https://...","5607080") -> "5607080"
       const cleanId = idStr.replace(/[^0-9]/g,'') || idStr;
-      if(entry.week && entry.week !== wk) return;
+      if(entry.week && normaliseWeek(entry.week) !== wk) return;
       const m = RAW.find(x => String(x.id) === cleanId);
       if(m) remapped[contactKey(m)] = entry;
       else remapped[cleanId] = entry;
@@ -1424,9 +1448,15 @@ async function loadPrevContacts(){
       cleaned[week][key] = entry;
     });
   });
-  data = { allContacts: cleaned };
+  // Re-key allContacts by normalised week so sorting and filtering works regardless of stored format
+  const normalised = {};
+  Object.entries(cleaned).forEach(([rawWk, members]) => {
+    const nw = normaliseWeek(rawWk) || rawWk;
+    normalised[nw] = Object.assign(normalised[nw]||{}, members);
+  });
+  data = { allContacts: normalised };
   if(!data || !data.allContacts) return;
-  // allContacts is { weekKey -> { memberKey -> entry } }
+  // allContacts is { YYYY-MM-DD -> { memberKey -> entry } }
   // Find the most recent week that isn't the current week
   const thisWeek = currentWeekKey();
   const weeks = Object.keys(data.allContacts).filter(w=>w!==thisWeek).sort().reverse();
@@ -1612,7 +1642,7 @@ async function syncFromSheets(){
     const wk = currentWeekKey();
     Object.entries(data.contacted).forEach(([idStr, entry]) => {
       const cleanId = idStr.replace(/[^0-9]/g,'') || idStr;
-      if(entry.week && entry.week !== wk) return;
+      if(entry.week && normaliseWeek(entry.week) !== wk) return;
       const m = RAW.find(x => String(x.id) === cleanId);
       if(!m) return;
       const key = contactKey(m);
