@@ -1366,21 +1366,35 @@ async function loadContacted(){
     CONTACTED = raw ? JSON.parse(raw) : {};
   } catch(e){ CONTACTED = {}; }
   // Merge in this week's contacts from Sheets so marks persist across browsers/users
+  // Uses the same 'load' action as the coach board — returns { assignments: { memberId: { coachOrUser: { contacted, week, notes, ts } } } }
+  // Also tries 'loadEngagement' for backwards compatibility
   let data = null;
   try { data = await callScript('loadEngagement', {}); } catch(e){}
+  if(!data || !data.contacted){
+    try { data = await callScript('load', {}); } catch(e){}
+  }
+  const wk = currentWeekKey();
+  const remapped = {};
   if(data && data.contacted){
-    const wk = currentWeekKey();
-    const remapped = {};
+    // loadEngagement format: { contacted: { id: entry } }
     Object.entries(data.contacted).forEach(([idStr, entry]) => {
-      // Only include contacts logged this week
       if(entry.week && entry.week !== wk) return;
       const m = RAW.find(x => String(x.id) === idStr);
       if(m) remapped[contactKey(m)] = entry;
       else remapped[idStr] = entry;
     });
-    // Merge — local takes precedence so an uncontact action is respected
-    CONTACTED = {...remapped, ...CONTACTED};
+  } else if(data && data.assignments){
+    // load format: { assignments: { memberId: { coachName: { contacted, week, notes, ts } } } }
+    Object.entries(data.assignments).forEach(([idStr, perCoach]) => {
+      const coachEntry = Object.entries(perCoach).find(([,c]) => c.contacted && (!c.week || c.week === wk));
+      if(!coachEntry) return;
+      const [, entry] = coachEntry;
+      const m = RAW.find(x => String(x.id) === idStr);
+      if(m) remapped[contactKey(m)] = { ts: entry.ts||'', name: cn(m.n), week: wk, notes: entry.notes||'' };
+    });
   }
+  // Merge — local takes precedence so an uncontact action is respected
+  if(Object.keys(remapped).length) CONTACTED = {...remapped, ...CONTACTED};
 }
 
 function saveContactedLocal(){
@@ -1406,7 +1420,23 @@ let PREV_CONTACTS = {};  // { memberKey -> {name, notes, ts, contacted} }
 
 async function loadPrevContacts(){
   let data = null;
-  try { data = await callScript('loadAllEngagement', {}); } catch(e){}
+  try { data = await callScript('load', {}); } catch(e){}
+  // Remap load response: assignments[memberId][coachName] -> allContacts[week][memberKey]
+  if(data && data.assignments && !data.allContacts){
+    const wk = currentWeekKey();
+    const allContacts = {};
+    Object.entries(data.assignments).forEach(([idStr, perCoach]) => {
+      Object.values(perCoach).forEach(entry => {
+        if(!entry.contacted) return;
+        const entryWk = entry.week || wk;
+        const m = RAW.find(x => String(x.id) === idStr);
+        const key = m ? contactKey(m) : idStr;
+        if(!allContacts[entryWk]) allContacts[entryWk] = {};
+        allContacts[entryWk][key] = { name: m ? cn(m.n) : idStr, notes: entry.notes||'', ts: entry.ts||'', contacted: true };
+      });
+    });
+    data = { allContacts };
+  }
   if(!data || !data.allContacts) return;
   // allContacts is { weekKey -> { memberKey -> entry } }
   // Find the most recent week that isn't the current week
