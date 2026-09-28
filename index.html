@@ -248,6 +248,7 @@ select:focus{border-color:#6366f1}
   <span id="ct-week" style="font-size:0.68rem;color:#94a3b8;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:2px 8px"></span>
   <button class="needs-action-btn" id="naBtn" onclick="toggleNeedsAction()">Show needs action only</button>
   <button class="reset-btn" onclick="resetContacted()" title="Clear all contacted marks for this week">Reset week</button>
+  <button class="reset-btn" id="syncBtn" onclick="syncFromSheets()" title="Reload contacts from Google Sheets">⟳ Sync</button>
 </div>
 
 <!-- Export bar -->
@@ -1321,6 +1322,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzWg6Q1LlEZsf8K
 const SHEET_NAME = 'Engagement Dashboard'; // tab in the same Google Sheet
 
 function currentWeekKey(){
+  // Format: YYYY-MM-DD (matches coach board weekKeyNow() so week filtering is consistent)
   const d = new Date();
   const day = d.getDay() || 7;
   const monday = new Date(d);
@@ -1328,7 +1330,7 @@ function currentWeekKey(){
   const y = monday.getFullYear();
   const m = String(monday.getMonth()+1).padStart(2,'0');
   const dd = String(monday.getDate()).padStart(2,'0');
-  return y+m+dd;
+  return y+'-'+m+'-'+dd;
 }
 
 const LS_KEY = 'rebuild_contacted_w_'+currentWeekKey();
@@ -1598,6 +1600,33 @@ function toggleNeedsAction(){
   needsActionOnly = !needsActionOnly;
   document.getElementById('naBtn').classList.toggle('active', needsActionOnly);
   render(); buildNmBox(); buildHoldsBox(); buildExpiringBox();
+}
+
+async function syncFromSheets(){
+  const btn = document.getElementById('syncBtn');
+  if(btn){ btn.textContent='⟳ Syncing…'; btn.disabled=true; }
+  // Re-load from Sheets, merging over current local state
+  let data = null;
+  try { data = await callScript('loadEngagement', {}); } catch(e){}
+  if(data && data.contacted){
+    const wk = currentWeekKey();
+    Object.entries(data.contacted).forEach(([idStr, entry]) => {
+      const cleanId = idStr.replace(/[^0-9]/g,'') || idStr;
+      if(entry.week && entry.week !== wk) return;
+      const m = RAW.find(x => String(x.id) === cleanId);
+      if(!m) return;
+      const key = contactKey(m);
+      // Only overwrite local if sheet says contacted=true and we don't have it locally
+      if(!CONTACTED[key]) CONTACTED[key] = entry;
+    });
+    saveContactedLocal();
+    updateContactBar();
+    render(); buildNmBox(); buildHoldsBox(); buildExpiringBox();
+    showToast('Synced from Sheets ✓');
+  } else {
+    showToast('Could not reach Sheets');
+  }
+  if(btn){ btn.textContent='⟳ Sync'; btn.disabled=false; }
 }
 
 function resetContacted(){
