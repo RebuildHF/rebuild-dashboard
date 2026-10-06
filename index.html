@@ -423,6 +423,7 @@ select:focus{border-color:#6366f1}
       <select id="engLogOutcome" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.82rem;font-family:inherit;color:#334155;background:#f8fafc;cursor:pointer">
         <option value="">Select outcome…</option>
         <option value="Positive">Positive</option>
+        <option value="Aware">Aware</option>
         <option value="Needs follow-up">Needs follow-up</option>
         <option value="No response">No response</option>
         <option value="Escalate">Escalate</option>
@@ -1516,8 +1517,8 @@ function rotationState(m, q, prevContactEntry){
     return days < 7 ? 'grace' : 'due';
   }
 
-  // Positive — full grace window
-  if(outcome === 'Positive'){
+  // Positive / Aware — full grace window
+  if(outcome === 'Positive' || outcome === 'Aware'){
     const window = isMaintain ? 28 : isMonitor ? 14 : 7;
     return days < window ? 'grace' : 'due';
   }
