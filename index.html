@@ -1049,8 +1049,8 @@ function render(){
 function nmStatus(m){
   const weeksIn=m.days/7;
   const expected=weeksIn*3; // 3x/wk target
-  if(m.total===0&&m.days>7)return'concern';
-  const pct=m.total/Math.max(expected,1);
+  if(m.v90===0&&m.days>7)return'concern';
+  const pct=m.v90/Math.max(expected,1);
   if(pct>=0.75)return'on-track';
   if(pct>=0.45)return'watch';
   return'concern';
@@ -1080,7 +1080,7 @@ function buildNmBox(){
     const status=nmStatus(m);
     const week=nmWeek(m);
     const tgt=nmTarget(m);
-    const pct=Math.min(100,Math.round((m.total/Math.max(tgt,1))*100));
+    const pct=Math.min(100,Math.round((m.v90/Math.max(tgt,1))*100));
     const name=cn(m.n);
     const lvDays=m.lv?daysSince(m.lv):null;
     const borderCol=status==='on-track'?'#86efac':status==='watch'?'#fde047':'#fca5a5';
@@ -1141,7 +1141,7 @@ function buildNmBox(){
       <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:7px">${wkDots}</div>
       <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">${milestoneBadges}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:5px">
-        <span style="font-size:0.69rem;color:#475569">Visits: <strong style="color:#1e293b">${m.total}</strong></span>
+        <span style="font-size:0.69rem;color:#475569">Visits: <strong style="color:#1e293b">${m.v90}</strong></span>
         <span style="font-size:0.69rem;color:#475569">Target: <strong style="color:#1e293b">${tgt}</strong></span>
         <span style="font-size:0.69rem;color:#475569">Pace: <strong style="color:${statCol}">${pct}%</strong></span>
         <span style="font-size:0.69rem;color:#475569">This wk: <strong style="color:#1e293b">${m.v7}</strong></span>
@@ -1157,7 +1157,7 @@ function openNmPanel(m){
   const status=nmStatus(m);
   const week=nmWeek(m);
   const tgt=nmTarget(m);
-  const pct=Math.min(100,Math.round((m.total/Math.max(tgt,1))*100));
+  const pct=Math.min(100,Math.round((m.v90/Math.max(tgt,1))*100));
   const name=cn(m.n);
   const fn=fname(m.n);
   const lvDays=m.lv?daysSince(m.lv):null;
@@ -1167,12 +1167,12 @@ function openNmPanel(m){
   const barCol=status==='on-track'?'#22c55e':status==='watch'?'#f59e0b':'#ef4444';
 
   const script=[];
-  if(m.total===0&&m.days>7){
+  if(m.v90===0&&m.days>7){
     script.push('<strong>Zero visits after '+m.days+' days — urgent.</strong>');
     script.push((canSMS?'SMS':'Call')+': "Hey '+fn+', we haven\'t seen you yet — shall we book your first session?"');
     script.push('Offer a specific time with a coach. Remove all decision-making from them.');
   } else if(status==='concern'){
-    script.push('<strong>Below pace at week '+week+' — '+m.total+' of '+tgt+' target visits.</strong>');
+    script.push('<strong>Below pace at week '+week+' — '+m.v90+' of '+tgt+' target visits.</strong>');
     script.push('"Hey '+fn+', how are you finding it so far? We want to make sure you\'re getting the most out of it."');
     script.push('Goal: find 3 sessions per week that fit their life. This is the conversation that builds retention.');
     if(week>=4)script.push('Offer a complimentary PT session to reset momentum.');
@@ -1181,7 +1181,7 @@ function openNmPanel(m){
     script.push('Coach floor check-in when in: "How are you settling in? What\'s your favourite class?"');
     script.push('If not seen in 5+ days: '+(canSMS?'SMS':'email')+' check-in — warm and curiosity-led.');
   } else {
-    script.push('Great start — '+m.total+' visits at week '+week+', hitting '+pct+'% of the 3x/wk target.');
+    script.push('Great start — '+m.v90+' visits at week '+week+', hitting '+pct+'% of the 3x/wk target.');
     if(m.v7>=3)script.push('Hitting 3 sessions this week — the habit is forming. Reinforce it.');
     if(m.str>=4)script.push(m.str+'-week streak — acknowledge it publicly in class.');
     if(week>=8)script.push('Goal conversation: habit is forming, now anchor it to an outcome.');
@@ -1248,11 +1248,11 @@ function openNmPanel(m){
   }).join('');
 
   const milestones=[
-    {wk:1,label:'First visit',done:m.total>0},
-    {wk:2,label:'3 visits in 2 weeks (first habit signal)',done:m.total>=3},
-    {wk:4,label:'12 visits (3/wk for 4 weeks)',done:m.total>=12},
-    {wk:8,label:'24 visits (committed)',done:m.total>=24},
-    {wk:12,label:'36 visits (retained)',done:m.total>=36},
+    {wk:1,label:'First visit',done:m.v90>0},
+    {wk:2,label:'3 visits in 2 weeks (first habit signal)',done:m.v90>=3},
+    {wk:4,label:'12 visits (3/wk for 4 weeks)',done:m.v90>=12},
+    {wk:8,label:'24 visits (committed)',done:m.v90>=24},
+    {wk:12,label:'36 visits (retained)',done:m.v90>=36},
   ];
 
   document.getElementById('pname').textContent=name;
@@ -1292,7 +1292,7 @@ function openNmPanel(m){
         '<div style="height:100%;width:'+pct+'%;background:'+barCol+'"></div>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;font-size:0.65rem;color:#64748b">'+
-        '<span>'+m.total+' visits so far</span><span>Target: '+tgt+' by wk '+week+'</span><span style="color:'+statCol+';font-weight:700">'+pct+'%</span>'+
+        '<span>'+m.v90+' visits so far</span><span>Target: '+tgt+' by wk '+week+'</span><span style="color:'+statCol+';font-weight:700">'+pct+'%</span>'+
       '</div>'+
     '</div>'+
     '<div class="psection"><div class="stitle">Outreach touchpoints</div>'+tpRows+'</div>'+
@@ -1928,15 +1928,15 @@ function exportCoachReport(loc){
     if(m.days >= 7  && m.days <= 14) tp = ' · 7d check-in due';
     if(m.days >= 28 && m.days <= 35) tp = ' · 4wk nutrition chat due';
     if(m.days >= 56 && m.days <= 63) tp = ' · 8wk success session due';
-    return m.total === 0 && m.days > 5
+    return m.v90 === 0 && m.days > 5
       ? `Wk ${week} · no visits yet${tp}`
-      : `Wk ${week} · ${m.total} visits ${stLabel}${tp}`;
+      : `Wk ${week} · ${m.v90} visits ${stLabel}${tp}`;
   }
   function nmScript(m){
     const fn = fname(m.n);
     const st = nmStatus(m);
     const week = Math.min(12, Math.ceil(m.days / 7));
-    if(m.total === 0 && m.days > 5)
+    if(m.v90 === 0 && m.days > 5)
       return `Floor: "Hey ${fn}, great to see you — how are you finding things so far?"`;
     if(m.days >= 56 && m.days <= 63)
       return `Floor: "Hey ${fn}, 8 weeks in — let\'s grab 15 mins to set some goals for the next phase."`;
@@ -2395,17 +2395,17 @@ function exportNM(){
     const tgt    = Math.round((week / 12) * 36);
     const exp    = (m.days / 7) * 3;
     let status;
-    if(m.total === 0 && m.days > 7) status = 'Concern';
+    if(m.v90 === 0 && m.days > 7) status = 'Concern';
     else {
-      const pct = m.total / Math.max(exp, 1);
+      const pct = m.v90 / Math.max(exp, 1);
       status = pct >= 0.75 ? 'On track' : pct >= 0.45 ? 'Watch' : 'Concern';
     }
-    const pace = tgt > 0 ? Math.min(100, Math.round((m.total / tgt) * 100)) : 100;
+    const pace = tgt > 0 ? Math.min(100, Math.round((m.v90 / tgt) * 100)) : 100;
 
     // Week-by-week visit dots: estimate by distributing total across completed weeks
     // We have v7 (this wk) and v714 (last wk) — fill earlier weeks proportionally
     const weeksCompleted = Math.max(week - 1, 0);
-    const visitsBefore = Math.max(0, m.total - (m.v7 || 0));
+    const visitsBefore = Math.max(0, m.v90 - (m.v7 || 0));
     const avgPrior = weeksCompleted > 1 ? visitsBefore / (weeksCompleted - 1) : visitsBefore;
     const wkDots = Array.from({length:12}, (_,i) => {
       const w = i + 1;
@@ -2425,7 +2425,7 @@ function exportNM(){
     rows.push([
       firstName, lastName, m.loc, ph, m.email || '', m.prog || '',
       m.since, m.days, week, status,
-      m.total, tgt, pace+'%',
+      m.v90, tgt, pace+'%',
       m.v7 || 0, m.v714 || 0, m.lv || '', m.str || 0,
       m.sm === 'Subscribed' ? 'Yes' : 'No',
       m.em === 'Subscribed' ? 'Yes' : 'No',
