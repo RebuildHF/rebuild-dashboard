@@ -1023,6 +1023,64 @@ function saveLocalDocs(){ try{ localStorage.setItem('rebuild_coach_docs', JSON.s
 function getLocalDoc(id){ return localDocs[String(id)] || null; }
 function setLocalDoc(id, doc){ localDocs[String(id)] = doc; saveLocalDocs(); }
 
+// Seed assignments from Google Sheet snapshot (2026-10-08) — applied only where no local assignment exists yet
+const SEED_ASSIGNMENTS = {
+  '5285789': {primary:'everson_boian'},
+  '1591549': {primary:'fraser_harrison'},
+  '3413700': {primary:'fraser_harrison'},
+  '3986618': {primary:'fraser_harrison'},
+  '4838089': {primary:'fraser_harrison'},
+  '4991051': {primary:'fraser_harrison'},
+  '5289808': {primary:'fraser_harrison'},
+  '5481284': {primary:'fraser_harrison'},
+  '5516195': {primary:'fraser_harrison'},
+  '5996003': {primary:'fraser_harrison'},
+  '6080414': {primary:'fraser_harrison'},
+  '6088947': {primary:'fraser_harrison'},
+  '6101049': {primary:'fraser_harrison'},
+  '5328253': {primary:'fraser_harrison'},
+  '6316698': {primary:'fraser_harrison'},
+  '5220099': {primary:'fraser_harrison'},
+  '5267763': {primary:'fraser_harrison'},
+  '5944670': {primary:'fraser_harrison'},
+  '5836951': {primary:'fraser_harrison'},
+  '5941630': {primary:'fraser_harrison'},
+  '6311274': {primary:'fraser_harrison'},
+  '6243096': {primary:'fraser_harrison'},
+  '5233664': {primary:'azelle_breytenbach'},
+  '5285964': {primary:'azelle_breytenbach'},
+  '5508751': {primary:'azelle_breytenbach'},
+  '1591521': {primary:'azelle_breytenbach'},
+  '4900256': {primary:'azelle_breytenbach'},
+  '5225060': {primary:'fraser_harrison'},
+  '5718515': {primary:'azelle_breytenbach'},
+  '6080098': {primary:'azelle_breytenbach'},
+  '6110707': {primary:'azelle_breytenbach'},
+  '6267169': {primary:'azelle_breytenbach'},
+  '6359285': {primary:'everson_boian'},
+  '5777799': {primary:'fraser_harrison'},
+  '6244144': {primary:'everson_boian'},
+  '5575933': {primary:'everson_boian'},
+  '5210322': {primary:'everson_boian'},
+  '1591508': {primary:'everson_boian'},
+  '5995991': {primary:'everson_boian'},
+  '5813683': {primary:null, secondary:'everson_boian'},
+  '5337238': {primary:'azelle_breytenbach'},
+  '5285787': {primary:'fraser_harrison'},
+  '5554417': {primary:'fraser_harrison'},
+  '6361234': {primary:'ata_ceviker'},
+};
+// Apply seed — only for members with no existing local assignment
+Object.entries(SEED_ASSIGNMENTS).forEach(([id, v]) => {
+  const doc = localDocs[id] || {};
+  if(!Object.prototype.hasOwnProperty.call(doc, 'primary')){
+    if(v.primary !== undefined) doc.primary = v.primary;
+    if(v.secondary) doc.secondary = v.secondary;
+    localDocs[id] = doc;
+  }
+});
+saveLocalDocs();
+
 function effectivePrimaryId(m){
   const a = getLocalDoc(m.id);
   if(a && Object.prototype.hasOwnProperty.call(a,'primary')) return a.primary;
