@@ -1070,14 +1070,12 @@ const SEED_ASSIGNMENTS = {
   '5554417': {primary:'fraser_harrison'},
   '6361234': {primary:'ata_ceviker'},
 };
-// Apply seed — only for members with no existing local assignment
+// Apply seed — always overwrite primary/secondary from sheet snapshot so assignments are consistent across devices
 Object.entries(SEED_ASSIGNMENTS).forEach(([id, v]) => {
   const doc = localDocs[id] || {};
-  if(!Object.prototype.hasOwnProperty.call(doc, 'primary')){
-    if(v.primary !== undefined) doc.primary = v.primary;
-    if(v.secondary) doc.secondary = v.secondary;
-    localDocs[id] = doc;
-  }
+  if(v.primary !== undefined) doc.primary = v.primary;
+  if(v.secondary !== undefined) doc.secondary = v.secondary;
+  localDocs[id] = doc;
 });
 saveLocalDocs();
 
