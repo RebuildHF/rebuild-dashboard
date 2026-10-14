@@ -407,7 +407,7 @@ textarea.notes{width:100%;min-height:64px;border:1.5px solid var(--border);borde
       <div class="hdr-title">
         <h1>Coach Outreach Board</h1>
         <p>Rebuild Health &amp; Fitness &middot; Monitor &amp; Maintain quadrants, allocated to coaches for weekly outreach</p>
-        <div class="snap">&#128203; Member list snapshot: <b id="snapDate">4 Oct 2026</b> &middot; from the Member Engagement Dashboard</div>
+        <div class="snap">&#128203; Member list snapshot: <b id="snapDate">13 Oct 2026</b> &middot; from the Member Engagement Dashboard</div>
       </div>
       <div class="hdr-stats">
         <div class="hstat monitor"><b id="statMonitor">0</b><span>Monitor</span></div>
@@ -1038,6 +1038,134 @@ function daysSince(isoTs){
 // 'due'      — grace window expired or never contacted → surface normally
 // 'grace'    — contacted recently with Positive/No-response → mute tile
 // 'recent'   — contacted this week → green tick (handled separately)
+function effectiveCap(m){
+  const mem=m.mem;
+  if(!mem) return 3;
+  const name=mem.name||'';
+  if(name.includes('Rebels')||name.toLowerCase().includes('weightlifting')) return 3;
+  if(name.includes('Express')) return 2;
+  if(mem.limit&&(mem.limit_unit||'').toLowerCase()==='week') return mem.limit;
+  return 3;
+}
+function wowSig(m){
+  if(m.v7===0&&m.v714>0)return'gone';
+  if(m.v7-m.v714<-1)return'drop';
+  if(m.v7-m.v714>1)return'rise';
+  return'steady';
+}
+function sub3(m){
+  const cap=effectiveCap(m);
+  return m.v7<cap && m.v30 < cap*4*0.85;
+}
+function consecDrops(m){
+  const c2=m.v7<m.v714&&m.v714<m.v1421;
+  const c3=c2&&m.v1421<m.v2128;
+  return {c2,c3};
+}
+// Monitor now only picks up members who are actually trending down: two
+// consecutive weekly drops, or stuck at 2-or-fewer visits for the last two
+// weeks running. A member who no longer matches either condition drops off
+// the board entirely rather than sitting in Monitor on session-count alone.
+function isMonitorFlag(m){
+  const {c2}=consecDrops(m);
+  const lowSustained = m.v7<=2 && m.v714<=2;
+  return c2 || lowSustained;
+}
+function inSection(m,q){
+  if(q===3) return m.q===3 && isMonitorFlag(m);
+  if(q===4) return m.q===4;
+  return false;
+}
+function isVisible(m){ return inSection(m,3) || inSection(m,4); }
+function evidenceText(m){
+  const sig=wowSig(m);
+  const {c2,c3}=consecDrops(m);
+  if(sig==='gone') return m.v714>0 ? `${m.v714} visit${m.v714>1?'s':''} the week before, 0 last week.` : 'No visits last week.';
+  if(c3) return `${m.v2128}→${m.v1421}→${m.v714}→${m.v7} visits over 4 weeks — three straight drops.`;
+  if(c2) return `${m.v1421}→${m.v714}→${m.v7} visits over 3 weeks — two consecutive drops.`;
+  if(sub3(m)&&m.ca) return `Averaging ${parseFloat(m.ca.toFixed(1))}x/wk, below the 3/wk retention threshold.`;
+  return `${m.v7} visit${m.v7!==1?'s':''} last week vs ${m.v714} the week before.`;
+}
+function outreachLines(m){
+  const fn=fname(m.n);
+  const isNew=m.days<90, isVet=m.days>730;
+  const {c2,c3}=consecDrops(m);
+  const sig=wowSig(m);
+  const tenureYrs=parseFloat((m.days/365).toFixed(1));
+  const lines=[];
+
+  if(m.q===3){
+    // Evidence first
+    lines.push('<strong>Evidence:</strong> '+evidenceText(m));
+    if(isNew) lines.push(`<strong>New member</strong> (${m.days} days) &mdash; low early attendance is the #1 churn predictor.`);
+    // What to notice on the floor
+    if(sig==='rise'||m.v7>m.v714){
+      lines.push('What to notice: energy, confidence, positive body language &mdash; they&rsquo;re trending up.');
+      lines.push('Goal: reinforce what&rsquo;s working. Help them name it so they can protect it.');
+    } else {
+      lines.push('What to notice: any mention of time, energy, or life stuff getting in the way.');
+      lines.push('Goal: find the friction. One honest conversation can change the trajectory.');
+    }
+    // Conversation starter based on pattern
+    if(c3)
+      lines.push(`Opening: &ldquo;Hey ${fn}, you&rsquo;ve gone from ${m.v2128} sessions a few weeks ago down to ${m.v7} last week &mdash; how&rsquo;s everything going?&rdquo;`);
+    else if(c2)
+      lines.push(`Opening: &ldquo;Hey ${fn}, you were in ${m.v714} the week before last, then ${m.v7} last week &mdash; what would help you find a solid routine?&rdquo;`);
+    else if(sig==='rise'||m.v7>m.v714)
+      lines.push(`Opening: &ldquo;Hey ${fn}, noticed your attendance picked back up &mdash; what&rsquo;s been helping?&rdquo;`);
+    else
+      lines.push(`Opening: &ldquo;Hey ${fn}, how&rsquo;s everything going? We want to make sure training is working for you.&rdquo;`);
+    // Next step
+    if(c2||c3)
+      lines.push('Next step: if drop continues next week, escalate to a scheduled 1:1 check-in.');
+    else if(sig==='rise'||m.v7>m.v714)
+      lines.push('Next step: if improvement holds, acknowledge publicly and consider a referral ask.');
+    else
+      lines.push('Next step: monitor for 1 more week. If no improvement, move to a scheduled check-in.');
+
+  } else {
+    // Q4 Maintain
+    const milestone=isMilestone(m);
+    if(milestone){
+      lines.push(`<strong>Milestone: ${m.str}-week streak</strong> &mdash; say it out loud in class today.`);
+      lines.push(`Celebration: &ldquo;Big shout out to ${fn} &mdash; ${m.str} weeks straight. That&rsquo;s what consistency looks like.&rdquo;`);
+      lines.push('Ask: &ldquo;What&rsquo;s been the biggest thing keeping you consistent?&rdquo;');
+      lines.push('Consider inviting them to a Success Session to channel the momentum into a new goal.');
+    } else {
+      if(m.v7>=3) lines.push(`At or above the 3/wk retention threshold last week (${m.v7} visits).`);
+      if(m.str>=4) lines.push(`${m.str}-week streak &mdash; ${m.str>=8?'celebrate publicly':'acknowledge the consistency'}.`);
+    }
+    lines.push('Training interest check-in: &ldquo;Have you been enjoying what we&rsquo;ve been doing lately? Anything you want more of &mdash; strength, conditioning, technique?&rdquo;');
+    lines.push('Goals check-in: &ldquo;You&rsquo;ve been so consistent &mdash; any goals you want to work toward over the next few months?&rdquo;');
+    lines.push('Community ask: &ldquo;You&rsquo;re one of our best &mdash; do you know anyone who&rsquo;d love this? We&rsquo;d love more people like you.&rdquo;');
+    if(isVet) lines.push(`Veteran member (${tenureYrs} yrs) &mdash; a personal anniversary note or shout-out goes a long way.`);
+    if(sig==='drop') lines.push(`Signal: slight dip last week (${m.v714}&rarr;${m.v7}) &mdash; mention it warmly, not as a concern.`);
+  }
+  return lines;
+}
+function priorityScore(m){
+  let s=0;
+  const sig=wowSig(m);
+  const {c2}=consecDrops(m);
+  if(sig==='gone') s+=50; else if(sig==='drop') s+=30;
+  s+=Math.max(0,(m.v714-m.v7))*5;
+  if(c2) s+=15;
+  if(sub3(m)) s+=10;
+  if(m.q===4 && sig!=='steady' && sig!=='rise') s+=8; // a Maintain member slipping matters more
+  return s;
+}
+
+/* ================= Milestones, dates & coverage ================= */
+// Early streak milestones every 4 weeks, then every 25 from 50 onward
+// (4-8-12-16-20-50-75-100-125-…) — no milestone in the 20-50 gap.
+const MILESTONE_WEEKS_EARLY=[4,8,12,16,20];
+const MILESTONE_LABEL='4/8/12/16/20/50/75/100+wk';
+function isMilestoneWeek(w){
+  if(MILESTONE_WEEKS_EARLY.includes(w)) return true;
+  return w>=50 && w%25===0;
+}
+function isMilestone(m){ return m.q===4 && isMilestoneWeek(m.str); }
+
 function rotationState(m, q, prevContactEntry){
   // If contacted this week — handled by isContactedThisWeek, not here
   const prev = prevContactEntry;
