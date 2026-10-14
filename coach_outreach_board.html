@@ -1320,12 +1320,18 @@ const SEED_ASSIGNMENTS = {
   '5554417': {primary:'fraser_harrison'},
   '6361234': {primary:'ata_ceviker'},
 };
-// Apply seed — always overwrite primary/secondary from sheet snapshot so assignments are consistent across devices
+// Apply seed — only fill gaps where no local assignment exists yet.
+// Sheets is the source of truth; loadAllAssignments() overwrites from there on startup.
+// Wodify main coach is the fallback where neither Sheets nor seed has an entry.
 Object.entries(SEED_ASSIGNMENTS).forEach(([id, v]) => {
   const doc = localDocs[id] || {};
-  if(v.primary !== undefined) doc.primary = v.primary;
-  if(v.secondary !== undefined) doc.secondary = v.secondary;
-  localDocs[id] = doc;
+  const hasExisting = Object.prototype.hasOwnProperty.call(doc, 'primary') ||
+                      Object.prototype.hasOwnProperty.call(doc, 'secondary');
+  if(!hasExisting){
+    if(v.primary !== undefined) doc.primary = v.primary;
+    if(v.secondary !== undefined) doc.secondary = v.secondary;
+    localDocs[id] = doc;
+  }
 });
 saveLocalDocs();
 
