@@ -819,6 +819,28 @@ const MEMBERS = [
   {n:"💚Sam Duignan💚",id:5267763,loc:"Capalaba",free:false,ar:false,ca:2.5,pa:4.75,str:28,days:924,since:"2024-03-27",lg:1,em:"Subscribed",sm:"Subscribed",prog:"Blueprint",tag:null,ph:"0432 507 254",email:"samduignan@hotmail.com",v7:2,v714:2,v1421:3,v2128:2,v30:11,v60:31,v90:57,lv:"2026-10-12",cap:5,coach:"Everson Boian",mem:{name:"Membership Hold ",type:"Class Plan",plan:"Weekly Hold",programs:"Blueprint, Capacity, Dynamic Strength, Olympic Lifting, Open Gym, Rebel BABES, Rebuild Express, Rebuild Foundation Class, Rebuild Performance, Rebuild Performance Online, REBUILD TASTER DAY, Youth S&C",limit:null,limit_unit:"No Limit",limitation:"No Limit",cap:null,restriction:null,on_hold:false,hold_reason:null,autorenew:"No Auto Renew",start:"2026-12-18",expiry:"2027-01-01"},mems:[{name:"Membership Hold ",type:"Class Plan",plan:"Weekly Hold",programs:"Blueprint, Capacity, Dynamic Strength, Olympic Lifting, Open Gym, Rebel BABES, Rebuild Express, Rebuild Foundation Class, Rebuild Performance, Rebuild Performance Online, REBUILD TASTER DAY, Youth S&C",limit:null,limit_unit:"No Limit",limitation:"No Limit",cap:null,restriction:null,on_hold:false,hold_reason:null,autorenew:"No Auto Renew",start:"2026-12-18",expiry:"2027-01-01",remaining:null,has_cap:false}],q:3},
   {n:"💛⚡️Kate Sheridan ⚡️💛",id:5718515,loc:"Wynnum",free:false,ar:false,ca:4.5,pa:4.0,str:40,days:546,since:"2025-04-10",lg:1,em:"Subscribed",sm:"Subscribed",prog:"Blueprint",tag:"HIGH-SCORE",ph:"0417352389",email:"sherike@icloud.com",v7:4,v714:5,v1421:5,v2128:5,v30:20,v60:39,v90:56,lv:"2026-10-07",cap:3,coach:"Ata Ceviker",mem:{name:"Unlimited Group Classes",type:"Class Plan",plan:"Fortnightly",programs:"Blueprint, Capacity, Dynamic Strength, Olympic Lifting, Open Gym, Rebel BABES, Rebuild Express, Rebuild Foundation Class, Rebuild Performance, Rebuild Performance Online, REBUILD TASTER DAY, Youth S&C",limit:null,limit_unit:"No Limit",limitation:"No Limit",cap:null,restriction:null,on_hold:false,hold_reason:null,autorenew:"Auto Renew",start:"2026-10-12",expiry:"2026-10-26"},mems:[{name:"Unlimited Group Classes",type:"Class Plan",plan:"Fortnightly",programs:"Blueprint, Capacity, Dynamic Strength, Olympic Lifting, Open Gym, Rebel BABES, Rebuild Express, Rebuild Foundation Class, Rebuild Performance, Rebuild Performance Online, REBUILD TASTER DAY, Youth S&C",limit:null,limit_unit:"No Limit",limitation:"No Limit",cap:null,restriction:null,on_hold:false,hold_reason:null,autorenew:"Auto Renew",start:"2026-10-12",expiry:"2026-10-26",remaining:null,has_cap:false}],q:4}
 ];
+function mondayOfWeek(d){
+  const dt=new Date(d); dt.setHours(0,0,0,0);
+  const day=dt.getDay()||7;
+  dt.setDate(dt.getDate()-day+1);
+  return dt;
+}
+function thursdayEndOfWeek(d){
+  const mon=mondayOfWeek(d);
+  const thu=new Date(mon); thu.setDate(mon.getDate()+3); thu.setHours(23,59,59,999);
+  return thu;
+}
+function fmtShortDate(d){
+  return d.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+}
+function coverageStatusClass(pct){
+  if(pct>=100) return 'cov-done';
+  const now=new Date();
+  if(now.getTime()>thursdayEndOfWeek(now).getTime()) return 'cov-overdue';
+  if(now.getDay()===4) return 'cov-duetoday';
+  return 'cov-ontrack';
+}
+
 const OUTCOME_OPTIONS={
   3:[ // Monitor
     {value:'booked',label:'Booked a class / back on the floor'},
@@ -1025,6 +1047,10 @@ function parseContactOutcome(notes){
   if(parts.length >= 2) return parts[1].trim();
   return null;
 }
+
+function cn(n){return(n||'').replace(/[\u{1F300}-\u{1FFFF}|\u{2600}-\u{26FF}|\u{2700}-\u{27BF}]/gu,'').replace(/[^\x00-\x7F]/g,'').trim();}
+function fname(n){const p=cn(n).split(' ');return p[0]||cn(n);}
+function escapeHtml(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function daysSince(isoTs){
   if(!isoTs) return 9999;
