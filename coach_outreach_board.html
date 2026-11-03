@@ -772,12 +772,8 @@ async function loadAllAssignments(){
   assignments = a;
   // Mirror this week's Sheets contacts into localDocs so isContactedThisWeek works across browsers
   const wk = weekKeyNow();
-  const [wkYear, wkMon] = wk.split('-').map(Number);
-  const wkStart = new Date(wkYear, wkMon-1, 1);
-  // weekKeyNow is YYYY-MM (Monday of week) — compute actual Monday
-  const now = new Date();
-  const dayOfWeek = now.getDay() || 7;
-  const monday = new Date(now); monday.setDate(now.getDate() - dayOfWeek + 1); monday.setHours(0,0,0,0);
+  // weekKeyNow is anchored to DATA_DATE — compute the Monday of the dashboard week for timestamp fallback
+  const monday = new Date(wk); monday.setHours(0,0,0,0);
   Object.entries(a).forEach(([memberId, perCoach]) => {
     const anyContacted = Object.values(perCoach).some(c => c.contacted);
     if(!anyContacted) return;
@@ -890,7 +886,9 @@ function getMyAssignment(id){
   return (assignments[String(id)]||{})[coachName] || null;
 }
 function weekKeyNow(){
-  const d=new Date();
+  // Anchor to DATA_DATE so the week key is fixed for this dashboard regardless of when it's viewed.
+  // This ensures contacts logged on any browser always use the same key.
+  const d=new Date(DATA_DATE);
   const day=d.getDay()||7;
   const mon=new Date(d); mon.setDate(d.getDate()-day+1);
   return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
