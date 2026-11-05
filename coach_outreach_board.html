@@ -778,14 +778,18 @@ async function loadAllAssignments(){
     if(!anyContacted) return;
     const coachEntry = Object.entries(perCoach).find(([,c]) => c.contacted);
     if(!coachEntry) return;
-    // Only mirror if week key matches current week
+    // Mirror if the entry's week matches, or if the timestamp falls within the dashboard week.
+    // We check the timestamp fallback even when a week key is present, in case the Apps Script
+    // returned the week in an unrecognised format that normaliseWeek can't parse.
     const entryWeek = coachEntry[1].week || '';
-    if(entryWeek && normaliseWeek(entryWeek) !== wk) return;
-    // Fallback to timestamp check if no week key stored yet
-    if(!entryWeek && coachEntry[1].ts){
+    const normalisedEntryWeek = entryWeek ? normaliseWeek(entryWeek) : '';
+    const weekMatches = normalisedEntryWeek === wk;
+    let tsInWindow = false;
+    if(coachEntry[1].ts){
       const ts = new Date(coachEntry[1].ts);
-      if(ts < monday) return;
+      tsInWindow = ts >= monday;
     }
+    if(!weekMatches && !tsInWindow) return;
     const doc = localDocs[memberId] || {};
     if(!doc.weeks) doc.weeks = {};
     if(!doc.weeks[wk]){
@@ -828,7 +832,8 @@ async function writeContactToSheet(memberId, memberName, coachName, contacted, n
   assignments[memberId] = assignments[memberId]||{};
   assignments[memberId][coachName] = {
     contacted, notes:notes||'',
-    ts:new Date().toISOString(), coachId:coachName
+    ts:new Date().toISOString(), coachId:coachName,
+    week: weekKeyNow()
   };
   renderWorkload(); renderAll();
   if(openPanelId===memberId) refreshPanel();
