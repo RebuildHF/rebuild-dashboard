@@ -1487,6 +1487,9 @@ function passesFilters(m){
   return true;
 }
 function compareMembers(a,b){
+  // Contacted members always sink to the bottom regardless of sort mode
+  const ca=isContactedThisWeek(a)?1:0, cb=isContactedThisWeek(b)?1:0;
+  if(ca!==cb) return ca-cb;
   if(sortMode==='name') return cn(a.n).localeCompare(cn(b.n));
   if(sortMode==='visits') return b.v7-a.v7;
   if(sortMode==='streak') return b.str-a.str;
@@ -1494,8 +1497,6 @@ function compareMembers(a,b){
   if(ha!==hb) return ha-hb;
   const mila=(isMilestone(a)&&!milestoneComplete(a))?0:1, milb=(isMilestone(b)&&!milestoneComplete(b))?0:1;
   if(mila!==milb) return mila-milb;
-  const ca=isContactedThisWeek(a)?1:0, cb=isContactedThisWeek(b)?1:0;
-  if(ca!==cb) return ca-cb;
   return priorityScore(b)-priorityScore(a);
 }
 
