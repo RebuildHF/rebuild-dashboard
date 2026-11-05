@@ -1604,14 +1604,25 @@ function renderSection(q, listId, countId){
 }
 
 /* ================= Coverage bars ================= */
+// Returns true for the subset of filters that meaningfully scope the coverage pool
+// (mine / unassigned / location). Skips needs-contact and milestone — those would
+// distort the bar by hiding one half of the fraction.
+function passesCoverageFilters(m){
+  if(activeLoc && m.loc!==activeLoc) return false;
+  const eff=effectivePrimaryId(m);
+  const a=getLocalDoc(m.id)||{};
+  if(assignFilter==='mine' && !(currentCoachId && (eff===currentCoachId || (a&&a.secondary===currentCoachId)))) return false;
+  if(assignFilter==='unassigned' && eff) return false;
+  return true;
+}
 function computeCoverage(q){
-  const list=MEMBERS.filter(m=>inSection(m,q) && (!activeLoc||m.loc===activeLoc) && hasAnyCoach(m));
+  const list=MEMBERS.filter(m=>inSection(m,q) && passesCoverageFilters(m) && hasAnyCoach(m));
   const total=list.length;
   const done=list.filter(isContactedThisWeek).length;
   return {total, done, pct: total?Math.round(done/total*100):100};
 }
 function computeMilestoneCoverage(){
-  const list=MEMBERS.filter(m=>isMilestone(m) && (!activeLoc||m.loc===activeLoc));
+  const list=MEMBERS.filter(m=>isMilestone(m) && passesCoverageFilters(m));
   const total=list.length;
   const done=list.filter(milestoneComplete).length;
   return {total, done, pct: total?Math.round(done/total*100):100};
