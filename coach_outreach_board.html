@@ -747,8 +747,7 @@ const COACH_LIST = [
   {name:'Ata Ceviker',        pin:'%AC94'},
   {name:'Azelle Breytenbach', pin:'&AB00'},
   {name:'Everson Boian',      pin:'*EB75'},
-  {name:'Fraser Harrison',    pin:'^FH91'},
-];
+  {name:'Fraser Harrison',    pin:'^FH91'}];
 let coaches = {};  // id -> {id,name,pin,active}
 COACH_LIST.forEach(c => {
   const id = c.name.toLowerCase().replace(/[^a-z]/g,'_');
@@ -1348,8 +1347,7 @@ function scriptMessage(m){
       `Hey ${fn}, ${m.str} consecutive weeks — that's the standard. Seriously impressive. What's been your highlight lately?`,
       `Hey ${fn}, ${m.str} weeks without missing — if that doesn't inspire someone in this room, nothing will. How are you feeling?`,
       `Hey ${fn}, ${m.str} weeks straight. No excuses, no gaps — just showing up. What goals are you working toward right now?`,
-      `Hey ${fn}, ${m.str} weeks in a row. Most people talk about being consistent — you just are. What do you want to work on next?`,
-    ];
+      `Hey ${fn}, ${m.str} weeks in a row. Most people talk about being consistent — you just are. What do you want to work on next?`];
     return phrases[Math.floor(m.str/4) % phrases.length];
   }
   if(sig==='drop')
@@ -1359,8 +1357,7 @@ function scriptMessage(m){
     `Hey ${fn}, you've been so consistent — have you thought about what you want to get out of the next few months? Any goals I can help you work toward?`,
     `Hey ${fn}, great having you around so often. You're one of the people who really gets what we're about — do you know anyone who'd love this?`,
     `Hey ${fn}, really enjoy having you in — what's been clicking for you lately, and is there anything we could do more of?`,
-    `Hey ${fn}, you've built something solid here. What aspect of your training are you most focused on right now?`,
-  ];
+    `Hey ${fn}, you've built something solid here. What aspect of your training are you most focused on right now?`];
   return maintainVariants[m.id % maintainVariants.length];
 }
 function copyText(text){
