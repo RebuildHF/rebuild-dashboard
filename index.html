@@ -694,7 +694,11 @@ function outreachScript(m,q){
 
 // ── Membership info renderer — shows ALL memberships ─────────────────
 function memHTML(m) {
-  const allMems = (m.mems && m.mems.length) ? m.mems : (m.mem ? [m.mem] : []);
+  // m.mems may be an array (RAW members) or a string (NEW_MEMBERS) — normalise to array of objects
+  let rawMems = (m.mems && Array.isArray(m.mems)) ? m.mems : (m.mem && Array.isArray(m.mem)) ? m.mem : [];
+  if(!rawMems.length && m.mem) rawMems = typeof m.mem === 'string' ? [{name: m.mem}] : [m.mem];
+  if(!rawMems.length && m.mems && typeof m.mems === 'string') rawMems = [{name: m.mems}];
+  const allMems = rawMems;
   if (!allMems.length) return '';
 
   // Derive effective cap from primary mem for context note
@@ -1795,8 +1799,8 @@ openPanel = function(m){
 // Patch openNmPanel similarly
 const _origOpenNmPanel = openNmPanel;
 openNmPanel = function(m){
-  _origOpenNmPanel(m);
-  injectContactUI(m);
+  try { _origOpenNmPanel(m); } catch(e){ console.error('[NM panel] openNmPanel error:', e); }
+  try { injectContactUI(m); } catch(e){ console.error('[NM panel] injectContactUI error:', e); }
 };
 
 // ── Patch render to inject checkboxes + filter needs-action ───────────
