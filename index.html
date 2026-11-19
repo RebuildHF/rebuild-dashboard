@@ -91,6 +91,9 @@ select:focus{border-color:#6366f1}
 .flag-badge.esc{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
 .chip-name{font-weight:700;color:#1e293b}
 .chip-v{color:#64748b;font-size:0.61rem}
+.chip-contact{font-size:0.55rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.chip-ph{color:#0369a1}
+.chip-em{color:#64748b}
 .wpip{display:inline-flex;gap:1px;align-items:flex-end;height:10px;margin:0 1px}
 .wpip span{width:3px;border-radius:1px}
 .cbadge{font-size:0.56rem;padding:1px 4px;border-radius:999px;font-weight:700}
@@ -899,6 +902,7 @@ function buildQList(q, members){
     '<th title="Consecutive week streak">Str</th>'+
     '<th>Last visit</th>'+
     '<th>Coach</th>'+
+    '<th>Contact</th>'+
     '<th>Membership</th>'+
     '</tr></thead><tbody>';
   members.forEach(m=>{
@@ -918,6 +922,7 @@ function buildQList(q, members){
       <td class="ql-num">${m.str||0}</td>
       <td style="color:#64748b;font-size:0.65rem">${lv}</td>
       <td class="ql-coach">${coach}</td>
+      <td style="font-size:0.6rem;max-width:120px"><span style="color:#0369a1;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.ph||''}</span><span style="color:#64748b;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.email||''}</span></td>
       <td style="color:#64748b;font-size:0.62rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${mem}</td>
     </tr>`;
   });
@@ -1033,7 +1038,9 @@ function render(){
     chip.className='chip'+(el?' wow-elevated':'')+(sig==='gone'?' wow-gone':'')+(s3&&!el?' sub3':'')+(m.free?' free-mem':'')+(isGrace?' grace':'')+(isFlagged?(isEscalate?' escalate-flag':' flagged'):'');
     chip.title=name+' | '+m.loc+(m.free?' | Free':'')+' | '+m.prog+' | Risk: '+riskScore(m)+' | v7:'+m.v7+' v30:'+m.v30;
     chip.onclick=()=>openPanel(m);
-    chip.innerHTML=badge+sub3Badge+elevBadge+freeBadge+holdBadge+cancelBadge+memCapBadge+locBadge+flagBadge+sparkBars(m)+'<span class="chip-name">'+fn+'</span><span class="chip-v">'+m.v7+'/'+m.v30+'</span>';
+    const phBadge=m.ph?'<span class="chip-contact chip-ph">📞 '+m.ph+'</span>':'';
+    const emBadge=m.email?'<span class="chip-contact chip-em">✉ '+m.email+'</span>':'';
+    chip.innerHTML=badge+sub3Badge+elevBadge+freeBadge+holdBadge+cancelBadge+memCapBadge+locBadge+flagBadge+sparkBars(m)+'<span class="chip-name">'+fn+'</span><span class="chip-v">'+m.v7+'/'+m.v30+'</span>'+phBadge+emBadge;
     areas[q].push(chip);
   });
 
