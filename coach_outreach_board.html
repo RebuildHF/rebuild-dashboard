@@ -1634,7 +1634,7 @@ function downloadSection(q, label){
     return /[,"\n\r]/.test(s) ? `"${s}"` : s;
   };
 
-  const headers = ['Name','Location','Coach','v7','v714','v1421','v2128','v30','Last Visit','Days as Member','At Risk','Email','Phone'];
+  const headers = ['Name','Location','Coach','v7','v714','v1421','v2128','v30','Last Visit','Days as Member','At Risk','Email','Phone','Outreach Message'];
   const rows = list.map(m => {
     const doc = getLocalDoc(m.id)||{};
     const primaryId = effectivePrimaryId(m);
@@ -1647,7 +1647,8 @@ function downloadSection(q, label){
       m.days||'',
       m.ar ? 'Yes' : 'No',
       m.email||'',
-      m.ph||''
+      m.ph||'',
+      cleanName(scriptMessage(m))
     ].map(esc).join(',');
   });
 
