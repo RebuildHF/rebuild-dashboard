@@ -748,8 +748,7 @@ const COACH_LIST = [
   {name:'Ata Ceviker',        pin:'%AC94'},
   {name:'Azelle Breytenbach', pin:'&AB00'},
   {name:'Everson Boian',      pin:'*EB75'},
-  {name:'Fraser Harrison',    pin:'^FH91'},
-  {name:'Victoria Harper',    pin:'~VH00'}];
+  {name:'Fraser Harrison',    pin:'^FH91'}];
 let coaches = {};  // id -> {id,name,pin,active}
 COACH_LIST.forEach(c => {
   const id = c.name.toLowerCase().replace(/[^a-z]/g,'_');
