@@ -1621,6 +1621,14 @@ function downloadSection(q, label){
     return c ? c.name : (id||'');
   };
 
+  // Strip emoji and non-printable characters from names
+  const cleanName = s => String(s??'')
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')   // emoji blocks
+    .replace(/[ -⟿]/g, '')            // misc symbols, arrows, dingbats
+    .replace(/[\u{E000}-\u{F8FF}]/gu, '')       // private use
+    .replace(/[^\x20-\x7EÀ-ɏ]/g, '') // keep basic latin + extended latin, drop rest
+    .replace(/\s{2,}/g, ' ').trim();
+
   const esc = v => {
     const s = String(v??'').replace(/"/g,'""');
     return /[,"\n\r]/.test(s) ? `"${s}"` : s;
@@ -1631,7 +1639,7 @@ function downloadSection(q, label){
     const doc = getLocalDoc(m.id)||{};
     const primaryId = effectivePrimaryId(m);
     return [
-      m.n,
+      cleanName(m.n),
       m.loc||'',
       coachName(primaryId),
       m.v7, m.v714, m.v1421, m.v2128, m.v30,
