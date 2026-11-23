@@ -195,6 +195,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .section-head.monitor .section-count{color:var(--monitor-strong)}
 .section-head.maintain .section-count{color:var(--maintain-strong)}
 .section-head-row{display:flex;align-items:center;gap:10px;width:100%}
+.dl-btn{flex-shrink:0;border:none;background:transparent;cursor:pointer;padding:3px 5px;border-radius:6px;opacity:.6;transition:opacity .15s,background .15s;line-height:1;font-size:.85rem}
+.dl-btn:hover{opacity:1;background:rgba(0,0,0,.08)}
+.section-head.maintain .dl-btn:hover{background:rgba(0,0,0,.08)}
 .coverage-wrap{padding:0 16px 12px}
 .coverage-wrap.maintain{background:var(--maintain-bg)}
 .coverage-wrap.monitor{background:var(--monitor-bg)}
@@ -474,6 +477,7 @@ textarea.notes{width:100%;min-height:64px;border:1.5px solid var(--border);borde
         <div class="section-head-row">
           <div><h2>Monitor</h2><p>Trending down &mdash; 2 straight weekly drops, or &le;2 visits/wk for 2+ weeks</p></div>
           <div class="section-count" id="countMonitor">0</div>
+          <button class="dl-btn" title="Download Monitor list as CSV" onclick="downloadSection(3,'Monitor')">⬇ CSV</button>
         </div>
       </div>
       <div class="coverage-wrap monitor" id="covWrapMonitor"></div>
@@ -484,6 +488,7 @@ textarea.notes{width:100%;min-height:64px;border:1.5px solid var(--border);borde
         <div class="section-head-row">
           <div><h2>Maintain</h2><p>12+ sessions in 30 days &middot; celebrate &amp; retain</p></div>
           <div class="section-count" id="countMaintain">0</div>
+          <button class="dl-btn" title="Download Maintain list as CSV" onclick="downloadSection(4,'Maintain')">⬇ CSV</button>
         </div>
       </div>
       <div class="coverage-wrap maintain" id="covWrapMaintain"></div>
@@ -1604,6 +1609,49 @@ function renderSection(q, listId, countId){
   document.getElementById(countId).textContent=list.length;
   const body=document.getElementById(listId);
   body.innerHTML = list.length ? list.map(tileHTML).join('') : '<div class="empty-tile">No members match these filters.</div>';
+}
+
+/* ================= CSV Download ================= */
+function downloadSection(q, label){
+  const list=MEMBERS.filter(m=>inSection(m,q) && passesFilters(m)).sort(compareMembers);
+  if(!list.length){ alert('No members in this list to download.'); return; }
+
+  const coachName = id => {
+    const c = coaches[id];
+    return c ? c.name : (id||'');
+  };
+
+  const esc = v => {
+    const s = String(v??'').replace(/"/g,'""');
+    return /[,"\n\r]/.test(s) ? `"${s}"` : s;
+  };
+
+  const headers = ['Name','Location','Coach','v7','v714','v1421','v2128','v30','Last Visit','Days as Member','At Risk','Email','Phone'];
+  const rows = list.map(m => {
+    const doc = getLocalDoc(m.id)||{};
+    const primaryId = effectivePrimaryId(m);
+    return [
+      m.n,
+      m.loc||'',
+      coachName(primaryId),
+      m.v7, m.v714, m.v1421, m.v2128, m.v30,
+      m.lv||'',
+      m.days||'',
+      m.ar ? 'Yes' : 'No',
+      m.email||'',
+      m.ph||''
+    ].map(esc).join(',');
+  });
+
+  const csv = [headers.map(esc).join(','), ...rows].join('\r\n');
+  const locPart = activeLoc ? `-${activeLoc}` : '';
+  const filename = `Rebuild-${label}${locPart}-${DATA_DATE}.csv`;
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
 }
 
 /* ================= Coverage bars ================= */
