@@ -790,7 +790,7 @@ function openPanel(m){
   const sparkHTML='<div class="sparkline">'+vals.map((v,i)=>{
     const pct=Math.max(4,Math.round((v/mx)*100));
     const ref=i===3?`<div style="position:absolute;width:100%;height:2px;background:#a855f7;opacity:0.6;bottom:${refH}%"></div>`:'';
-    return `<div class="sbar" style="height:${pct}%;background:${bCols[i]};position:relative" data-t="W-${4-i}: ${v} visits">${ref}</div>`;
+    return `<div class="sbar" style="height:${pct}%;background:${bCols[i]};position:relative" data-t="W-${4-i}: ${v} visits">${ref}<span style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:0.6rem;color:#fff;font-weight:700;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.4)">${v||''}</span></div>`;
   }).join('')+'</div><div class="slabels"><span>W-4</span><span>W-3</span><span>W-2</span><span>Now</span></div>';
 
   const v30pct=Math.min(100,Math.round((m.v30/21)*100)); // 21 = 3/wk × 7wks approx
@@ -840,13 +840,13 @@ function openPanel(m){
     '<div class="psection"><div class="stitle">4-week sparkline <span style="color:#a855f7;font-size:0.58rem">(purple line = 3/wk target)</span></div><div class="sparkline-wrap"><div class="sparkline-label">W-4 to this week</div>'+sparkHTML+'</div></div>'+
     '<div class="psection"><div class="stitle">30 / 60 / 90 day visits</div>'+
       '<div class="tbar-wrap"><div class="tbar"><div class="tseg" style="width:'+v30pct+'%;background:'+(m.v30>=12?'#22c55e':m.v30>=8?'#6366f1':'#ef4444')+';min-width:'+(m.v30>0?'18px':'0')+'">'+( m.v30>0?m.v30:'' )+'</div><div style="flex:1"></div></div>'+
-      '<div class="tlabels"><span>30d: '+m.v30+'</span><span>60d: '+m.v60+'</span><span>90d: '+m.v90+'</span><span style="color:#a855f7">target 30d: 12</span></div></div>'+
+      '<div class="tlabels"><span>30d: '+m.v30+'</span><span>60d: '+(m.v60!=null?m.v60:'—')+'</span><span>90d: '+(m.v90!=null?m.v90:'—')+'</span><span style="color:#a855f7">target 30d: 12</span></div></div>'+
     '</div>'+
     memHTML(m)+
     '<div class="psection"><div class="stitle">Member info</div>'+
       '<div class="mrow"><span class="ml">Location</span><span class="mv">'+m.loc+'</span></div>'+
       '<div class="mrow"><span class="ml">Member since</span><span class="mv">'+m.since+' ('+parseFloat((m.days/365).toFixed(1))+' yrs)</span></div>'+
-      '<div class="mrow"><span class="ml">Streak</span><span class="mv">'+m.str+' weeks</span></div>'+
+      '<div class="mrow"><span class="ml">Streak</span><span class="mv">'+(m.str!=null?m.str+' weeks':'—')+'</span></div>'+
       '<div class="mrow"><span class="ml">Wodify avg</span><span class="mv">'+(m.ca||'—')+'/wk (prev '+(m.pa||'—')+')</span></div>'+
       '<div class="mrow"><span class="ml">Last app login</span><span class="mv">'+(m.lg!=null?m.lg+'d ago':'unknown')+'</span></div>'+
       '<div class="mrow"><span class="ml">Program</span><span class="mv">'+m.prog+'</span></div>'+
@@ -1313,7 +1313,7 @@ function openNmPanel(m){
     '<div class="psection"><div class="stitle">This week</div>'+
       '<div class="mrow"><span class="ml">Visits this week</span><span class="mv" style="color:'+(m.v7>=3?'#15803d':m.v7>0?'#a16207':'#dc2626')+'">'+m.v7+(m.v7>=3?' ✓':m.v7>0?' (need '+(3-m.v7)+' more)':' — none yet')+'</span></div>'+
       '<div class="mrow"><span class="ml">Last week</span><span class="mv">'+m.v714+'</span></div>'+
-      '<div class="mrow"><span class="ml">Streak</span><span class="mv">'+m.str+' weeks</span></div>'+
+      '<div class="mrow"><span class="ml">Streak</span><span class="mv">'+(m.str!=null?m.str+' weeks':'—')+'</span></div>'+
       '<div class="mrow"><span class="ml">Last visit</span><span class="mv">'+(m.lv||'never')+(lvDays?' ('+lvDays+'d ago)':'')+' </span></div>'+
     '</div>'+
     memHTML(m)+
